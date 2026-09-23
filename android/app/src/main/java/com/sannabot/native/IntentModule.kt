@@ -1,0 +1,175 @@
+package com.sannabot.native
+
+import android.content.Intent
+import android.net.Uri
+import com.facebook.react.bridge.*
+
+/**
+ * IntentModule – Android Intent Execution Native Module
+ *
+ * Allows the JS agent to fire Android Intents to open/control other apps.
+ * Used by the `intent` generic tool.
+ */
+class IntentModule(reactContext: ReactApplicationContext) :
+    ReactContextBaseJavaModule(reactContext) {
+
+    override fun getName(): String = "IntentModule"
+
+    /**
+     * Send an Android Intent.
+     *
+     * @param action  Intent action (e.g. "android.intent.action.VIEW")
+     * @param uri     URI string (e.g. "google.navigation:q=Vienna")
+     * @param packageName  Optional package to target (e.g. "com.google.android.apps.maps")
+     * @param extras  Optional JSON object of key-value extras
+     * @param promise Resolves with "ok" or rejects with error
+     */
+    @ReactMethod
+    fun sendIntent(
+        action: String,
+        uri: String?,
+        packageName: String?,
+        extras: ReadableMap?,
+        promise: Promise,
+    ) {
+        try {
+            // Special case: ACTION_MAIN with a package but no URI means "launch the app".
+            // The correct Android way is getLaunchIntentForPackage(), which includes
+            // CATEGORY_LAUNCHER automatically. A bare ACTION_MAIN + setPackage() without
+            // CATEGORY_LAUNCHER fails with "No Activity found to handle Intent".
+            val intent: Intent =
+                if (action == Intent.ACTION_MAIN && !packageName.isNullOrBlank() && uri.isNullOrBlank()) {
+                    reactApplicationContext.packageManager
+                        .getLaunchIntentForPackage(packageName)
+                        ?: throw Exception("App not found or not launchable: $packageName")
+                } else {
+                    Intent(action).apply {
+                        if (!uri.isNullOrBlank()) data = Uri.parse(uri)
+                        if (!packageName.isNullOrBlank()) setPackage(packageName)
+                    }
+                }
+
+            // Add extras
+            extras?.let { map ->
+                val iterator = map.keySetIterator()
+                while (iterator.hasNextKey()) {
+                    val key = iterator.nextKey()
+                    when (map.getType(key)) {
+                        ReadableType.String  -> intent.putExtra(key, map.getString(key))
+                        ReadableType.Number  -> intent.putExtra(key, map.getDouble(key))
+                        ReadableType.Boolean -> intent.putExtra(key, map.getBoolean(key))
+                        else -> { /* skip complex types */ }
+                    }
+                }
+            }
+
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            // Try from current activity first, fall back to application context
+            val activity = reactApplicationContext.currentActivity
+            if (activity != null) {
+                activity.startActivity(intent)
+            } else {
+                reactApplicationContext.startActivity(intent)
+            }
+            promise.resolve("ok")
+        } catch (e: Exception) {
+            promise.reject("INTENT_ERROR", e.message ?: "Unknown error", e)
+        }
+    }
+
+    /**
+     * Check if an app is installed (package name query).
+     */
+    @ReactMethod
+    fun isAppInstalled(packageName: String, promise: Promise) {
+        try {
+            reactApplicationContext.packageManager.getPackageInfo(packageName, 0)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.resolve(false)
+        }
+    }
+
+    /**
+     * Search installed apps by name or package name.
+     *
+     * Only returns apps that have a launcher activity (i.e. user-launchable apps).
+     * Matches against the app's display label and its package name.
+     *
+     * @param query  Search term (partial, case-insensitive)
+     * @param promise Resolves with an array of { name: String, package: String }
+     */
+    @ReactMethod
+    fun searchInstalledApps(query: String, promise: Promise) {
+        try {
+            val pm = reactApplicationContext.packageManager
+            val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+            val apps = pm.queryIntentActivities(launcherIntent, 0)
+
+            val results = WritableNativeArray()
+            val queryLower = query.lowercase()
+            var count = 0
+            val maxResults = 20
+
+            apps.forEach { resolveInfo ->
+                if (count >= maxResults) return@forEach
+
+                val label = resolveInfo.loadLabel(pm).toString()
+                val packageName = resolveInfo.activityInfo.packageName
+
+                if (label.lowercase().contains(queryLower) ||
+                    packageName.lowercase().contains(queryLower)) {
+                    val app = WritableNativeMap().apply {
+                        putString("name", label)
+                        putString("package", packageName)
+                    }
+                    results.pushMap(app)
+                    count++
+                }
+            }
+
+            promise.resolve(results)
+        } catch (e: Exception) {
+            promise.reject("APP_SEARCH_ERROR", e.message ?: "Unknown error", e)
+        }
+    }
+
+    /**
+     * Get all installed apps with launcher activity.
+     *
+     * Only returns apps that have a launcher activity (i.e. user-launchable apps).
+     * Returns all apps without filtering, up to a maximum limit.
+     *
+     * @param promise Resolves with an array of { name: String, package: String }
+     */
+    @ReactMethod
+    fun getAllInstalledApps(promise: Promise) {
+        try {
+            val pm = reactApplicationContext.packageManager
+            val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+            val apps = pm.queryIntentActivities(launcherIntent, 0)
+
+            val results = WritableNativeArray()
+            var count = 0
+            val maxResults = 500
+
+            apps.forEach { resolveInfo ->
+                if (count >= maxResults) return@forEach
+
+                val label = resolveInfo.loadLabel(pm).toString()
+                val packageName = resolveInfo.activityInfo.packageName
+
+                val app = WritableNativeMap().apply {
+                    putString("name", label)
+                    putString("package", packageName)
+                }
+                results.pushMap(app)
+                count++
+            }
+
+            promise.resolve(results)
+        } catch (e: Exception) {
+            promise.reject("GET_ALL_APPS_ERROR", e.message ?: "Unknown error", e)
+        }
+    }
+}
