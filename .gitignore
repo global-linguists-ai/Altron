@@ -36,6 +36,7 @@ local.config.js
 *.hprof
 .cxx/
 *.keystore
+!android/app/debug.keystore
 .kotlin/
 
 # node.js

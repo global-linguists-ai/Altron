@@ -5,13 +5,15 @@
   "scripts": {
     "android": "react-native run-android",
     "android:release": "react-native run-android --mode release",
-    "build:apk": "cp local.config.ts local.config.ts.bak && cp local.config.example.ts local.config.ts && cd android && ./gradlew assembleRelease; EXIT=$?; cd .. && mv local.config.ts.bak local.config.ts; echo ''; if [ $EXIT -eq 0 ]; then echo '✅ APK ready: android/app/build/outputs/apk/release/app-release.apk'; else echo '❌ Build failed (exit code '$EXIT')'; fi; exit $EXIT",
+    "build:apk": "cd android && ./gradlew assembleDebug",
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
     "logcat": "adb logcat -c && adb logcat -s ReactNativeJS:V *:S",
-    "logfile": "adb pull /storage/emulated/0/Download/sanna.txt sanna.txt 2>/dev/null || adb pull /sdcard/Download/sanna.txt sanna.txt 2>/dev/null || echo 'File not found. Make sure the app has written sanna.txt to Downloads.'"
+    "logfile": "adb pull /storage/emulated/0/Download/sanna.txt sanna.txt 2>/dev/null || adb pull /sdcard/Download/sanna.txt sanna.txt 2>/dev/null || echo 'File not found. Make sure the app has written sanna.txt to Downloads.'",
+    "build:release": "cd android && ./gradlew assembleRelease",
+    "clean": "cd android && ./gradlew clean"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
