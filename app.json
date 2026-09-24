@@ -9,6 +9,11 @@
     "android": {
       "package": "com.sannabot",
       "versionCode": 1
+    },
+    "extra": {
+      "eas": {
+        "projectId": "40b3426e-5169-486e-a956-bb5330302e12"
+      }
     }
   }
 }
