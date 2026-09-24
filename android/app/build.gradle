@@ -98,6 +98,15 @@ android {
         // Must match the scheme in redirectUrl: "sannabot://..."
         manifestPlaceholders = [appAuthRedirectScheme: "sannabot"]
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
