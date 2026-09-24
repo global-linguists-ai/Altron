@@ -13,7 +13,8 @@
     "logcat": "adb logcat -c && adb logcat -s ReactNativeJS:V *:S",
     "logfile": "adb pull /storage/emulated/0/Download/sanna.txt sanna.txt 2>/dev/null || adb pull /sdcard/Download/sanna.txt sanna.txt 2>/dev/null || echo 'File not found. Make sure the app has written sanna.txt to Downloads.'",
     "build:release": "cd android && ./gradlew assembleRelease",
-    "clean": "cd android && ./gradlew clean"
+    "clean": "cd android && ./gradlew clean",
+    "build:expo": "eas build --platform android --profile preview"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",

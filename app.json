@@ -1,4 +1,14 @@
 {
   "name": "Altron",
-  "displayName": "Altron"
+  "displayName": "Altron",
+  "expo": {
+    "name": "Altron",
+    "slug": "altron",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "android": {
+      "package": "com.sannabot",
+      "versionCode": 1
+    }
+  }
 }
